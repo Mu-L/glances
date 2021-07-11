@@ -21,11 +21,10 @@
 from __future__ import unicode_literals
 
 import base64
-import operator
 
 from glances.timer import getTimeSinceLastUpdate
 from glances.plugins.glances_plugin import GlancesPlugin
-from glances.compat import n, u, b, nativestr
+from glances.compat import n
 from glances.logger import logger
 
 import psutil
@@ -61,6 +60,7 @@ class Plugin(GlancesPlugin):
 
         # We want to display the stat in the curse interface
         self.display_curse = True
+
         # Hide stats if it has never been != 0
         if config is not None:
             self.hide_zero = config.get_bool_value(
@@ -69,11 +69,15 @@ class Plugin(GlancesPlugin):
             self.hide_zero = False
         self.hide_zero_fields = ['rx', 'tx']
 
+        # Force a first update because we need two update to have the first stat
+        self.update()
+        self.refresh_timer.set(0)
+
     def get_key(self):
         """Return the key of the list."""
         return 'interface_name'
 
-    @GlancesPlugin._check_decorator
+    # @GlancesPlugin._check_decorator
     @GlancesPlugin._log_result_decorator
     def update(self):
         """Update network stats using the input method.
@@ -131,6 +135,7 @@ class Plugin(GlancesPlugin):
                     tx = cumulative_tx - self.network_old[net].bytes_sent
                     cx = rx + tx
                     netstat = {'interface_name': n(net),
+                               'alias': self.has_alias(n(net)),
                                'time_since_update': time_since_update,
                                'cumulative_rx': cumulative_rx,
                                'rx': rx,
@@ -204,6 +209,7 @@ class Plugin(GlancesPlugin):
                         cx = rx + tx
                         netstat = {
                             'interface_name': interface_name,
+                            'alias': self.has_alias(interface_name),
                             'time_since_update': time_since_update,
                             'cumulative_rx': cumulative_rx,
                             'rx': rx,
@@ -306,10 +312,10 @@ class Plugin(GlancesPlugin):
                 continue
             # Format stats
             # Is there an alias for the interface name ?
-            ifrealname = i['interface_name'].split(':')[0]
-            ifname = self.has_alias(i['interface_name'])
-            if ifname is None:
-                ifname = ifrealname
+            if i['alias'] is None:
+                ifname = i['interface_name'].split(':')[0]
+            else:
+                ifname = i['alias']
             if len(ifname) > name_max_width:
                 # Cut interface name if it is too long
                 ifname = '_' + ifname[-name_max_width + 1:]

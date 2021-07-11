@@ -35,10 +35,10 @@ from glances.thresholds import GlancesThresholdCritical
 from glances.thresholds import GlancesThresholds
 from glances.plugins.glances_plugin import GlancesPlugin
 from glances.compat import subsample, range
+from glances.secure import secure_popen
 
 # Global variables
 # =================
-
 
 # Init Glances core
 core = GlancesMain()
@@ -245,14 +245,14 @@ class TestGlances(unittest.TestCase):
     def test_015_subsample(self):
         """Test subsampling function."""
         print('INFO: [TEST_015] Subsampling')
-        for l in [([1, 2, 3], 4),
-                  ([1, 2, 3, 4], 4),
-                  ([1, 2, 3, 4, 5, 6, 7], 4),
-                  ([1, 2, 3, 4, 5, 6, 7, 8], 4),
-                  (list(range(1, 800)), 4),
-                  (list(range(1, 8000)), 800)]:
-            l_subsample = subsample(l[0], l[1])
-            self.assertLessEqual(len(l_subsample), l[1])
+        for l_test in [([1, 2, 3], 4),
+                       ([1, 2, 3, 4], 4),
+                       ([1, 2, 3, 4, 5, 6, 7], 4),
+                       ([1, 2, 3, 4, 5, 6, 7, 8], 4),
+                       (list(range(1, 800)), 4),
+                       (list(range(1, 8000)), 800)]:
+            l_subsample = subsample(l_test[0], l_test[1])
+            self.assertLessEqual(len(l_subsample), l_test[1])
 
     def test_016_hddsmart(self):
         """Check hard disk SMART data plugin."""
@@ -309,7 +309,7 @@ class TestGlances(unittest.TestCase):
         print('INFO: [TEST_096] Test views')
         plugins_list = stats.getPluginsList()
         for plugin in plugins_list:
-            stats_grab = stats.get_plugin(plugin).get_raw()
+            stats.get_plugin(plugin).get_raw()
             views_grab = stats.get_plugin(plugin).get_views()
             self.assertTrue(type(views_grab) is dict,
                             msg='{} view is not a dict'.format(plugin))
@@ -343,12 +343,12 @@ class TestGlances(unittest.TestCase):
         # GlancesHistory
         from glances.history import GlancesHistory
         h = GlancesHistory()
-        h.add('a', 1)
-        h.add('a', 2)
-        h.add('a', 3)
-        h.add('b', 10)
-        h.add('b', 20)
-        h.add('b', 30)
+        h.add('a', 1, history_max_size=100)
+        h.add('a', 2, history_max_size=100)
+        h.add('a', 3, history_max_size=100)
+        h.add('b', 10, history_max_size=100)
+        h.add('b', 20, history_max_size=100)
+        h.add('b', 30, history_max_size=100)
         self.assertEqual(len(h.get()), 2)
         self.assertEqual(len(h.get()['a']), 3)
         h.reset()
@@ -375,6 +375,13 @@ class TestGlances(unittest.TestCase):
         self.assertLessEqual(bar.percent, bar.min_value)
         bar.percent = 101
         self.assertGreaterEqual(bar.percent, bar.max_value)
+
+    def test_100_secure(self):
+        """Test secure functions"""
+        print('INFO: [TEST_100] Secure functions')
+        self.assertEqual(secure_popen('echo -n TEST'), 'TEST')
+        self.assertEqual(secure_popen('echo FOO | grep FOO'), 'FOO\n')
+        self.assertEqual(secure_popen('echo -n TEST1 && echo -n TEST2'), 'TEST1TEST2')
 
     def test_999_the_end(self):
         """Free all the stats"""

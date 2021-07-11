@@ -2,7 +2,7 @@
 #
 # This file is part of Glances.
 #
-# Copyright (C) 2019 Nicolargo <nicolas@nicolargo.com>
+# Copyright (C) 2021 Nicolargo <nicolas@nicolargo.com>
 #
 # Glances is free software; you can redistribute it and/or modify
 # it under the terms of the GNU Lesser General Public License as published by
@@ -19,10 +19,9 @@
 
 """Manage on alert actions."""
 
-from subprocess import Popen
-
 from glances.logger import logger
 from glances.timer import Timer
+from glances.secure import secure_popen
 
 try:
     import chevron
@@ -94,12 +93,16 @@ class GlancesActions(object):
             logger.info("Action triggered for {} ({}): {}".format(stat_name,
                                                                   criticity,
                                                                   cmd_full))
-            logger.debug("Stats value for the trigger: {}".format(
-                mustache_dict))
             try:
-                Popen(cmd_full, shell=True)
+                ret = secure_popen(cmd_full)
             except OSError as e:
-                logger.error("Can't execute the action ({})".format(e))
+                logger.error("Action error for {} ({}): {}".format(stat_name,
+                                                                   criticity,
+                                                                   e))
+            else:
+                logger.debug("Action result for {} ({}): {}".format(stat_name,
+                                                                    criticity, 
+                                                                    ret))
 
         self.set(stat_name, criticity)
 

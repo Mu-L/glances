@@ -64,7 +64,7 @@ class Plugin(GlancesPlugin):
         try:
             self.nb_log_core = CorePlugin(args=self.args).update()["log"]
         except Exception as e:
-            logger.debug('Error: Can not retrieve the CPU core number (set it to 1) ({})'.format(e))
+            logger.warning('Error: Can not retrieve the CPU core number (set it to 1) ({})'.format(e))
             self.nb_log_core = 1
 
     def _getloadavg(self):
@@ -126,9 +126,11 @@ class Plugin(GlancesPlugin):
         # Add specifics informations
         try:
             # Alert and log
-            self.views['min15']['decoration'] = self.get_alert_log(self.stats['min15'], maximum=100 * self.stats['cpucore'])
+            self.views['min15']['decoration'] = self.get_alert_log(self.stats['min15'],
+                                                                   maximum=100 * self.stats['cpucore'])
             # Alert only
-            self.views['min5']['decoration'] = self.get_alert(self.stats['min5'], maximum=100 * self.stats['cpucore'])
+            self.views['min5']['decoration'] = self.get_alert(self.stats['min5'],
+                                                              maximum=100 * self.stats['cpucore'])
         except KeyError:
             # try/except mandatory for Windows compatibility (no load stats)
             pass
